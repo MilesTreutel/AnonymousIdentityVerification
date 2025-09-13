@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Anonymous Identity Verification</title>
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <link rel="stylesheet" href="style.css">
+    <script>
+        // Global polyfill for ethers.js v6 in browser environment
+        if (typeof global === 'undefined') {
+            window.global = window.globalThis || window;
+        }
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/ethers@6.9.0/dist/ethers.umd.min.js"></script>
+    <script>
+        // Fallback check for ethers loading
+        if (typeof ethers === 'undefined') {
+            console.error('Ethers.js failed to load from CDN');
+            document.getElementById('connectionStatus').innerHTML =
+                '<span class="status-indicator"></span><span style="color: red;">⚠️ Failed to load ethers.js library</span>';
+        }
+    </script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Anonymous Identity Verification System</h1>
+            <p class="subtitle">Secure identity verification powered by Fully Homomorphic Encryption</p>
+        </header>
+
+        <div class="connection-status" id="connectionStatus">
+            <span class="status-indicator" id="statusIndicator"></span>
+            <span id="connectionText">Not Connected</span>
+        </div>
+
+        <div class="wallet-section">
+            <button id="connectWallet" class="btn btn-primary">Connect MetaMask</button>
+            <div id="walletInfo" class="wallet-info hidden">
+                <p><strong>Address:</strong> <span id="userAddress"></span></p>
+                <p><strong>Network:</strong> <span id="networkName"></span></p>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div class="tab-container">
+                <button class="tab-btn active" data-tab="register">Register Identity</button>
+                <button class="tab-btn" data-tab="verify">Request Verification</button>
+                <button class="tab-btn" data-tab="status">Check Status</button>
+                <button class="tab-btn" data-tab="admin">Admin Panel</button>
+            </div>
+
+            <div class="tab-content">
+                <!-- Register Identity Tab -->
+                <div class="tab-pane active" id="register">
+                    <div class="card">
+                        <h3>Register Identity Proof</h3>
+                        <p>Submit your encrypted identity credentials for verification</p>
+                        <form id="registerForm">
+                            <div class="form-group">
+                                <label for="credential">Identity Credential</label>
+                                <input type="number" id="credential" placeholder="Enter your identity credential" min="1" max="4294967295" required>
+                                <small>A unique identifier for your identity (1-4294967295)</small>
+                            </div>
+                            <div class="form-group">
+                                <label for="score">Identity Score</label>
+                                <input type="number" id="score" placeholder="Enter your identity score" min="75" max="255" required>
+                                <small>Your identity verification score (minimum 75)</small>
+                            </div>
+                            <button type="submit" class="btn btn-primary">Register Identity</button>
+                        </form>
+                        <div id="registerResult" class="result hidden"></div>
+                    </div>
+                </div>
+
+                <!-- Request Verification Tab -->
+                <div class="tab-pane" id="verify">
+                    <div class="card">
+                        <h3>Request Verification</h3>
+                        <p>Request anonymous identity verification</p>
+                        <button id="requestVerification" class="btn btn-primary">Request Verification</button>
+                        <div id="verificationResult" class="result hidden"></div>
+
+                        <div id="challengeSection" class="challenge-section hidden">
+                            <h4>Submit Verification Proof</h4>
+                            <form id="proofForm">
+                                <div class="form-group">
+                                    <label for="requestId">Request ID</label>
+                                    <input type="number" id="requestId" readonly>
+                                </div>
+                                <div class="form-group">
+                                    <label for="proofData">Proof Data</label>
+                                    <input type="number" id="proofData" placeholder="Enter verification proof" required>
+                                    <small>Calculate: (challenge × credential) % 1000000</small>
+                                </div>
+                                <button type="submit" class="btn btn-success">Submit Proof</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Check Status Tab -->
+                <div class="tab-pane" id="status">
+                    <div class="card">
+                        <h3>Identity Status</h3>
+                        <button id="checkStatus" class="btn btn-secondary">Check My Status</button>
+                        <div id="statusResult" class="result hidden"></div>
+
+                        <div class="status-details hidden" id="statusDetails">
+                            <div class="status-grid">
+                                <div class="status-item">
+                                    <span class="label">Active:</span>
+                                    <span class="value" id="isActive"></span>
+                                </div>
+                                <div class="status-item">
+                                    <span class="label">Verified:</span>
+                                    <span class="value" id="isVerified"></span>
+                                </div>
+                                <div class="status-item">
+                                    <span class="label">Registration:</span>
+                                    <span class="value" id="registrationTime"></span>
+                                </div>
+                                <div class="status-item">
+                                    <span class="label">Expires:</span>
+                                    <span class="value" id="expiryTime"></span>
+                                </div>
+                            </div>
+                            <button id="renewProof" class="btn btn-secondary">Renew Identity Proof</button>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <h3>Verification Request Status</h3>
+                        <div class="form-group">
+                            <label for="requestIdCheck">Request ID</label>
+                            <input type="number" id="requestIdCheck" placeholder="Enter request ID">
+                            <button id="checkRequestStatus" class="btn btn-secondary">Check Request</button>
+                        </div>
+                        <div id="requestStatusResult" class="result hidden"></div>
+                    </div>
+                </div>
+
+                <!-- Admin Panel Tab -->
+                <div class="tab-pane" id="admin">
+                    <div class="card">
+                        <h3>Admin Functions</h3>
+                        <p>Administrative functions for authorized verifiers</p>
+
+                        <div class="admin-section">
+                            <h4>Authorize Verifier</h4>
+                            <div class="form-group">
+                                <input type="text" id="verifierAddress" placeholder="0x..." pattern="^0x[a-fA-F0-9]{40}$">
+                                <button id="authorizeVerifier" class="btn btn-primary">Authorize</button>
+                            </div>
+                        </div>
+
+                        <div class="admin-section">
+                            <h4>Revoke Verifier</h4>
+                            <div class="form-group">
+                                <input type="text" id="revokeAddress" placeholder="0x..." pattern="^0x[a-fA-F0-9]{40}$">
+                                <button id="revokeVerifier" class="btn btn-danger">Revoke</button>
+                            </div>
+                        </div>
+
+                        <div class="admin-section">
+                            <h4>Verify Identity (Anonymous)</h4>
+                            <div class="form-group">
+                                <input type="text" id="verifyUserAddress" placeholder="0x..." pattern="^0x[a-fA-F0-9]{40}$">
+                                <button id="verifyIdentity" class="btn btn-success">Verify</button>
+                            </div>
+                        </div>
+
+                        <div class="admin-section">
+                            <h4>Contract Statistics</h4>
+                            <button id="getStats" class="btn btn-secondary">Get Statistics</button>
+                            <div id="statsResult" class="result hidden"></div>
+                        </div>
+
+                        <div id="adminResult" class="result hidden"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="loadingOverlay" class="loading-overlay hidden">
+        <div class="loading-spinner"></div>
+        <p>Processing transaction...</p>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

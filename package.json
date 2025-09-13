@@ -1,0 +1,30 @@
+{
+  "name": "anonymous-identity-verification",
+  "version": "1.0.0",
+  "description": "Anonymous identity verification system using FHE",
+  "main": "index.js",
+  "scripts": {
+    "compile": "hardhat compile",
+    "test": "hardhat test",
+    "deploy": "hardhat run scripts/deploy.js",
+    "deploy:sepolia": "hardhat run scripts/deploy.js --network sepolia"
+  },
+  "keywords": [
+    "blockchain",
+    "ethereum",
+    "fhe",
+    "zama",
+    "identity",
+    "verification",
+    "privacy"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^4.0.0",
+    "hardhat": "^2.19.0"
+  },
+  "dependencies": {
+    "@fhevm/solidity": "^0.4.0"
+  }
+}
